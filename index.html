@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Math Learning - Học Toán với AI mỗi ngày</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 AI Math Learning</h1>
+            <p class="subtitle">Câu hỏi mới mỗi ngày được tạo bởi trí tuệ nhân tạo</p>
+            <div class="streak-info">
+                <div class="streak-card">
+                    <span class="streak-label">🔥 Chuỗi làm bài:</span>
+                    <span class="streak-days" id="streakDays">0</span>
+                    <span class="streak-label">ngày</span>
+                </div>
+                <div class="streak-card">
+                    <span class="streak-label">⭐ Điểm TB cao nhất:</span>
+                    <span class="streak-days" id="highScore">0</span>
+                </div>
+                <div class="streak-card">
+                    <span class="streak-label">📊 Tổng bài đã làm:</span>
+                    <span class="streak-days" id="totalQuizzes">0</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="grade">📚 Chọn lớp:</label>
+                <select id="grade">
+                    <option value="4">Lớp 4</option>
+                    <option value="5">Lớp 5</option>
+                    <option value="6">Lớp 6</option>
+                    <option value="7">Lớp 7</option>
+                    <option value="8">Lớp 8</option>
+                    <option value="9">Lớp 9</option>
+                    <option value="10">Lớp 10</option>
+                    <option value="11">Lớp 11</option>
+                    <option value="12">Lớp 12</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="topic">📖 Chọn chủ đề:</label>
+                <select id="topic">
+                    <option value="all">📐 Tất cả chủ đề</option>
+                    <option value="Số học">🔢 Số học</option>
+                    <option value="Đại số">📊 Đại số</option>
+                    <option value="Hình học">📐 Hình học</option>
+                    <option value="Phân số">🥧 Phân số</option>
+                    <option value="Phương trình">⚖️ Phương trình</option>
+                    <option value="Hàm số">📈 Hàm số</option>
+                    <option value="Xác suất">🎲 Xác suất thống kê</option>
+                </select>
+            </div>
+
+            <button id="newQuestionsBtn" class="btn-primary">🔄 Làm bài mới</button>
+            <button id="refreshApiBtn" class="btn-secondary" style="background: #48bb78;">🔑 Cấu hình API</button>
+        </div>
+
+        <div id="apiConfigModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>🔑 Cấu hình Google Gemini API</h2>
+                <p>Nhập API Key của bạn để sử dụng AI sinh câu hỏi:</p>
+                <input type="text" id="apiKeyInput" placeholder="Nhập API Key tại đây" style="width: 100%; padding: 10px; margin: 10px 0;">
+                <p class="hint">💡 Chưa có API Key? <a href="https://aistudio.google.com/apikey" target="_blank">Lấy miễn phí tại đây</a></p>
+                <button id="saveApiKeyBtn" class="btn-primary">Lưu lại</button>
+            </div>
+        </div>
+
+        <div id="quizContainer">
+            <div class="welcome-card">
+                <h2>🎯 Chào mừng đến với AI Math Learning!</h2>
+                <p>✨ Mỗi ngày bạn sẽ nhận được 10 câu hỏi toán mới được AI tạo riêng cho trình độ của bạn</p>
+                <p>📅 Hãy làm bài mỗi ngày để duy trì chuỗi và cải thiện kỹ năng toán học</p>
+                <button id="startBtn" class="btn-primary" style="margin-top: 20px;">🚀 Bắt đầu học ngay</button>
+            </div>
+        </div>
+
+        <div id="resultContainer" style="display: none;">
+            <div class="result-card">
+                <h2>📊 Kết quả bài làm</h2>
+                <div class="score-display">
+                    <span class="score-number" id="scoreNumber">0</span>
+                    <span class="score-total">/10</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="detailedAnswers"></div>
+                <button id="reviewBtn" class="btn-secondary">🔍 Xem đáp án chi tiết</button>
+                <button id="newQuizBtn" class="btn-primary" style="margin-top: 10px;">🔄 Làm bài mới</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

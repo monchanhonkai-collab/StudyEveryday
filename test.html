@@ -1,0 +1,41 @@
+// Tạo file test.html riêng để test API
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API</title>
+</head>
+<body>
+    <button onclick="testAPI()">Test API</button>
+    <pre id="result"></pre>
+
+    <script>
+    const API_KEY = 'AIzaSyDHY01-9Eye39MxfPYQTSu4hs_hLlJzaLo';
+    
+    async function testAPI() {
+        const resultDiv = document.getElementById('result');
+        resultDiv.textContent = 'Đang kiểm tra...';
+        
+        try {
+            // Test model list
+            const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+            const listData = await listRes.json();
+            resultDiv.textContent = 'Models available:\n' + JSON.stringify(listData, null, 2);
+            
+            // Test generate
+            const genRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: "Tạo 1 câu hỏi toán lớp 5" }] }]
+                })
+            });
+            const genData = await genRes.json();
+            resultDiv.textContent += '\n\nGenerate result:\n' + JSON.stringify(genData, null, 2);
+            
+        } catch(error) {
+            resultDiv.textContent = 'Lỗi: ' + error.message;
+        }
+    }
+    </script>
+</body>
+</html>
