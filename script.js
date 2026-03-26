@@ -1,6 +1,6 @@
 // ==================== DÙNG GROQ API (MIỄN PHÍ) ====================
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-let apiKey = '';          // Sẽ lưu từ localStorage
+let apiKey = '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';          // Sẽ lưu từ localStorage
 let currentQuestions = [];
 
 // ==================== QUẢN LÝ DỮ LIỆU NGƯỜI DÙNG ====================
