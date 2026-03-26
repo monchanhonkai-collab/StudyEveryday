@@ -1,7 +1,6 @@
 // ==================== DÙNG GROQ API (MIỄN PHÍ) ====================
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-// 👇 THAY API KEY CỦA BẠN VÀO ĐÂY
-let apiKey = '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';   // Ví dụ: 'gsk_xxxxx...'
+let apiKey = '';          // Sẽ lưu từ localStorage
 let currentQuestions = [];
 
 // ==================== QUẢN LÝ DỮ LIỆU NGƯỜI DÙNG ====================
@@ -22,7 +21,16 @@ function loadUserData() {
         checkStreak();
         updateStreakDisplay();
     }
-    // Không cần load API key từ localStorage nữa vì đã gắn sẵn
+    
+    // Lấy key từ localStorage, nếu chưa có thì dùng key mặc định
+    const savedKey = localStorage.getItem('groqApiKey');
+    if (savedKey) {
+        apiKey = savedKey;
+    } else {
+        // Gán key mặc định và lưu lại
+        apiKey = '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';
+        localStorage.setItem('groqApiKey', apiKey);
+    }
     
     if (userData.savedGrade) {
         const gradeSelect = document.getElementById('grade');
@@ -69,14 +77,18 @@ function saveUserData() {
     localStorage.setItem('mathLearningData', JSON.stringify(userData));
 }
 
-// Không cần saveApiKey vì đã gắn sẵn
+function saveApiKey(key) {
+    apiKey = key;
+    localStorage.setItem('groqApiKey', key);
+}
 
 // ==================== GỌI GROQ API (CÓ THỬ NHIỀU MODEL) ====================
 async function callGroqAPI(prompt) {
-    if (!apiKey || apiKey === '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') {
-        throw new Error('❌ Vui lòng thay API key trong code bằng key thật của bạn từ https://console.groq.com/keys');
+    if (!apiKey) {
+        throw new Error('❌ Vui lòng cấu hình Groq API Key');
     }
 
+    // Danh sách model thử theo thứ tự ưu tiên
     const modelsToTry = [
         'llama-3.1-8b-instant',
         'llama-3.3-70b-versatile',
@@ -111,6 +123,7 @@ async function callGroqAPI(prompt) {
         } catch (err) {
             console.warn(`Model ${model} thất bại:`, err.message);
             lastError = err;
+            // Tiếp tục thử model tiếp theo
         }
     }
 
@@ -214,13 +227,13 @@ function showErrorMessage(error) {
         `;
     } else if (errorMessage.includes('API key') || errorMessage.includes('authorization') || errorMessage.includes('Invalid API Key')) {
         suggestion = `
-            <p>🔑 API Key không hợp lệ. Vui lòng kiểm tra lại key trong code (dòng \`let apiKey = '...'\`).</p>
-            <p>👉 Lấy key miễn phí tại <a href="https://console.groq.com/keys" target="_blank">https://console.groq.com/keys</a></p>
+            <p>🔑 API Key không hợp lệ. Vui lòng kiểm tra lại key hoặc cấu hình key mới.</p>
+            <p>👉 <button id="configApiBtn" class="btn-primary">Cấu hình API Key</button></p>
         `;
     } else if (errorMessage.includes('model') && errorMessage.includes('not found')) {
         suggestion = `
-            <p>🧠 Model AI không tồn tại. Hãy kiểm tra lại model trong code.</p>
-            <p>👉 Tham khảo model mới nhất tại <a href="https://console.groq.com/docs/models" target="_blank">Groq Models</a></p>
+            <p>🧠 Model AI không tồn tại hoặc đã bị thay thế. Hãy kiểm tra lại model trong code.</p>
+            <p>👉 Thử model mới nhất tại <a href="https://console.groq.com/docs/models" target="_blank">Groq Models</a></p>
         `;
     } else {
         suggestion = `
@@ -239,6 +252,9 @@ function showErrorMessage(error) {
 
     const retryBtn = document.getElementById('retryBtn');
     if (retryBtn) retryBtn.onclick = () => loadNewQuestions(true);
+
+    const configBtn = document.getElementById('configApiBtn');
+    if (configBtn) configBtn.onclick = showApiModal;
 }
 
 // ==================== HIỂN THỊ CÂU HỎI ====================
@@ -351,21 +367,58 @@ async function loadNewQuestions(forceRefresh = false) {
     }
 }
 
+// ==================== MODAL API ====================
+function showApiModal() {
+    let modal = document.getElementById('apiConfigModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'apiConfigModal';
+        modal.style.cssText = `position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center;`;
+        modal.innerHTML = `
+            <div style="background: white; border-radius: 20px; max-width: 500px; width: 90%; padding: 30px;">
+                <span id="closeModalBtn" style="float: right; font-size: 28px; cursor: pointer;">&times;</span>
+                <h2>🔑 Cấu hình Groq API</h2>
+                <p><strong>Groq</strong> cung cấp model AI miễn phí, nhanh. Lấy key tại:</p>
+                <p><a href="https://console.groq.com/keys" target="_blank">https://console.groq.com/keys</a></p>
+                <p>Đăng ký bằng Google, tạo key, dán vào đây:</p>
+                <input type="text" id="apiKeyInput" placeholder="Dán Groq API Key" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin: 10px 0;">
+                <button id="saveApiKeyBtn" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold;">💾 Lưu và sử dụng</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById('closeModalBtn').onclick = () => modal.style.display = 'none';
+        modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+    }
+    modal.style.display = 'flex';
+    document.getElementById('apiKeyInput').value = apiKey;
+    document.getElementById('saveApiKeyBtn').onclick = () => {
+        const newKey = document.getElementById('apiKeyInput').value.trim();
+        if (newKey) {
+            saveApiKey(newKey);
+            modal.style.display = 'none';
+            alert('✅ Đã lưu Groq API Key! Đang tải câu hỏi...');
+            loadNewQuestions(true);
+        } else {
+            alert('Vui lòng nhập API Key');
+        }
+    };
+}
+
 // ==================== KHỞI TẠO ====================
 document.addEventListener('DOMContentLoaded', () => {
     loadUserData();
     const gradeSelect = document.getElementById('grade');
     const topicSelect = document.getElementById('topic');
     const newBtn = document.getElementById('newQuestionsBtn');
-    const refreshApiBtn = document.getElementById('refreshApiBtn'); // nút này có thể ẩn đi vì không còn dùng
+    const refreshApiBtn = document.getElementById('refreshApiBtn');
     const startBtn = document.getElementById('startBtn');
 
     if (gradeSelect) gradeSelect.onchange = () => { saveSelectedOptions(); loadNewQuestions(); };
     if (topicSelect) topicSelect.onchange = () => { saveSelectedOptions(); loadNewQuestions(); };
     if (newBtn) newBtn.onclick = () => loadNewQuestions(true);
-    // Nếu có nút refreshApiBtn, có thể ẩn hoặc vô hiệu hóa
-    if (refreshApiBtn) refreshApiBtn.style.display = 'none';
+    if (refreshApiBtn) refreshApiBtn.onclick = showApiModal;
     if (startBtn) startBtn.onclick = () => loadNewQuestions();
 
+    // Luôn chạy loadNewQuestions (không confirm, vì đã có key)
     loadNewQuestions();
 });
