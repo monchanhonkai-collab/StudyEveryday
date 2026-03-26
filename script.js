@@ -1,6 +1,7 @@
 // ==================== DÙNG GROQ API (MIỄN PHÍ) ====================
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-let apiKey = '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';          // Sẽ lưu từ localStorage
+// 👇 THAY API KEY CỦA BẠN VÀO ĐÂY
+let apiKey = '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';   // Ví dụ: 'gsk_xxxxx...'
 let currentQuestions = [];
 
 // ==================== QUẢN LÝ DỮ LIỆU NGƯỜI DÙNG ====================
@@ -21,8 +22,7 @@ function loadUserData() {
         checkStreak();
         updateStreakDisplay();
     }
-    const savedKey = localStorage.getItem('groqApiKey');
-    if (savedKey) apiKey = savedKey;
+    // Không cần load API key từ localStorage nữa vì đã gắn sẵn
     
     if (userData.savedGrade) {
         const gradeSelect = document.getElementById('grade');
@@ -69,18 +69,14 @@ function saveUserData() {
     localStorage.setItem('mathLearningData', JSON.stringify(userData));
 }
 
-function saveApiKey(key) {
-    apiKey = key;
-    localStorage.setItem('groqApiKey', key);
-}
+// Không cần saveApiKey vì đã gắn sẵn
 
 // ==================== GỌI GROQ API (CÓ THỬ NHIỀU MODEL) ====================
 async function callGroqAPI(prompt) {
-    if (!apiKey) {
-        throw new Error('❌ Vui lòng cấu hình Groq API Key');
+    if (!apiKey || apiKey === 'YOUR_GROQ_API_KEY') {
+        throw new Error('❌ Vui lòng thay API key trong code bằng key thật của bạn từ https://console.groq.com/keys');
     }
 
-    // Danh sách model thử theo thứ tự ưu tiên
     const modelsToTry = [
         'llama-3.1-8b-instant',
         'llama-3.3-70b-versatile',
@@ -115,7 +111,6 @@ async function callGroqAPI(prompt) {
         } catch (err) {
             console.warn(`Model ${model} thất bại:`, err.message);
             lastError = err;
-            // Tiếp tục thử model tiếp theo
         }
     }
 
@@ -196,7 +191,6 @@ async function getQuestions(grade, topic, count = 10, forceRefresh = false) {
     } catch (error) {
         console.error('AI Error:', error);
         showLoading(false);
-        // Không fallback – ném lỗi lên trên
         throw error;
     }
 }
@@ -204,7 +198,7 @@ async function getQuestions(grade, topic, count = 10, forceRefresh = false) {
 // ==================== HIỂN THỊ THÔNG BÁO LỖI ====================
 function showErrorMessage(error) {
     const container = document.getElementById('quizContainer');
-    container.innerHTML = ''; // Xoá nội dung cũ
+    container.innerHTML = '';
 
     const errorDiv = document.createElement('div');
     errorDiv.style.cssText = 'background: #fff3cd; color: #856404; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center; border: 1px solid #ffeeba;';
@@ -212,7 +206,6 @@ function showErrorMessage(error) {
     let errorMessage = error.message;
     let suggestion = '';
 
-    // Phân tích lỗi để đưa ra hướng dẫn cụ thể
     if (errorMessage.includes('Rate limit') || errorMessage.includes('tokens per minute')) {
         suggestion = `
             <p>📊 Bạn đã dùng hết giới hạn tốc độ (rate limit) của Groq. Hãy thử lại sau vài giây hoặc nâng cấp lên gói Dev Tier để tăng giới hạn.</p>
@@ -221,13 +214,13 @@ function showErrorMessage(error) {
         `;
     } else if (errorMessage.includes('API key') || errorMessage.includes('authorization') || errorMessage.includes('Invalid API Key')) {
         suggestion = `
-            <p>🔑 API Key không hợp lệ hoặc chưa được cấu hình.</p>
-            <p>👉 <button id="configApiBtn" class="btn-primary">Cấu hình API Key</button></p>
+            <p>🔑 API Key không hợp lệ. Vui lòng kiểm tra lại key trong code (dòng \`let apiKey = '...'\`).</p>
+            <p>👉 Lấy key miễn phí tại <a href="https://console.groq.com/keys" target="_blank">https://console.groq.com/keys</a></p>
         `;
     } else if (errorMessage.includes('model') && errorMessage.includes('not found')) {
         suggestion = `
-            <p>🧠 Model AI không tồn tại hoặc đã bị thay thế. Hãy kiểm tra lại model trong code.</p>
-            <p>👉 Thử model mới nhất tại <a href="https://console.groq.com/docs/models" target="_blank">Groq Models</a></p>
+            <p>🧠 Model AI không tồn tại. Hãy kiểm tra lại model trong code.</p>
+            <p>👉 Tham khảo model mới nhất tại <a href="https://console.groq.com/docs/models" target="_blank">Groq Models</a></p>
         `;
     } else {
         suggestion = `
@@ -244,12 +237,8 @@ function showErrorMessage(error) {
     
     container.appendChild(errorDiv);
 
-    // Gắn sự kiện cho các nút
     const retryBtn = document.getElementById('retryBtn');
     if (retryBtn) retryBtn.onclick = () => loadNewQuestions(true);
-
-    const configBtn = document.getElementById('configApiBtn');
-    if (configBtn) configBtn.onclick = showApiModal;
 }
 
 // ==================== HIỂN THỊ CÂU HỎI ====================
@@ -362,69 +351,21 @@ async function loadNewQuestions(forceRefresh = false) {
     }
 }
 
-// ==================== MODAL API ====================
-function showApiModal() {
-    let modal = document.getElementById('apiConfigModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'apiConfigModal';
-        modal.style.cssText = `position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center;`;
-        modal.innerHTML = `
-            <div style="background: white; border-radius: 20px; max-width: 500px; width: 90%; padding: 30px;">
-                <span id="closeModalBtn" style="float: right; font-size: 28px; cursor: pointer;">&times;</span>
-                <h2>🔑 Cấu hình Groq API</h2>
-                <p><strong>Groq</strong> cung cấp model AI miễn phí, nhanh. Lấy key tại:</p>
-                <p><a href="https://console.groq.com/keys" target="_blank">https://console.groq.com/keys</a></p>
-                <p>Đăng ký bằng Google, tạo key, dán vào đây:</p>
-                <input type="text" id="apiKeyInput" placeholder="Dán Groq API Key" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; margin: 10px 0;">
-                <button id="saveApiKeyBtn" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold;">💾 Lưu và sử dụng</button>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        document.getElementById('closeModalBtn').onclick = () => modal.style.display = 'none';
-        modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
-    }
-    modal.style.display = 'flex';
-    document.getElementById('apiKeyInput').value = apiKey;
-    document.getElementById('saveApiKeyBtn').onclick = () => {
-        const newKey = document.getElementById('apiKeyInput').value.trim();
-        if (newKey) {
-            saveApiKey(newKey);
-            modal.style.display = 'none';
-            alert('✅ Đã lưu Groq API Key! Đang tải câu hỏi...');
-            loadNewQuestions(true);
-        } else {
-            alert('Vui lòng nhập API Key');
-        }
-    };
-}
-
 // ==================== KHỞI TẠO ====================
 document.addEventListener('DOMContentLoaded', () => {
     loadUserData();
     const gradeSelect = document.getElementById('grade');
     const topicSelect = document.getElementById('topic');
     const newBtn = document.getElementById('newQuestionsBtn');
-    const refreshApiBtn = document.getElementById('refreshApiBtn');
+    const refreshApiBtn = document.getElementById('refreshApiBtn'); // nút này có thể ẩn đi vì không còn dùng
     const startBtn = document.getElementById('startBtn');
 
     if (gradeSelect) gradeSelect.onchange = () => { saveSelectedOptions(); loadNewQuestions(); };
     if (topicSelect) topicSelect.onchange = () => { saveSelectedOptions(); loadNewQuestions(); };
     if (newBtn) newBtn.onclick = () => loadNewQuestions(true);
-    if (refreshApiBtn) refreshApiBtn.onclick = showApiModal;
+    // Nếu có nút refreshApiBtn, có thể ẩn hoặc vô hiệu hóa
+    if (refreshApiBtn) refreshApiBtn.style.display = 'none';
     if (startBtn) startBtn.onclick = () => loadNewQuestions();
 
-    if (!apiKey) {
-        setTimeout(() => {
-            if (confirm('🔑 Để dùng AI sinh câu hỏi, bạn cần có Groq API Key (miễn phí).\n\nBạn có muốn tạo key ngay bây giờ?')) {
-                window.open('https://console.groq.com/keys', '_blank');
-                showApiModal();
-            } else {
-                // Không có key, hiển thị lỗi yêu cầu cấu hình
-                showErrorMessage(new Error('Chưa cấu hình Groq API Key. Vui lòng nhấn nút "🔑 Cấu hình API" để thiết lập.'));
-            }
-        }, 500);
-    } else {
-        loadNewQuestions();
-    }
+    loadNewQuestions();
 });
