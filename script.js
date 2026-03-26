@@ -73,7 +73,7 @@ function saveUserData() {
 
 // ==================== GỌI GROQ API (CÓ THỬ NHIỀU MODEL) ====================
 async function callGroqAPI(prompt) {
-    if (!apiKey || apiKey === 'YOUR_GROQ_API_KEY') {
+    if (!apiKey || apiKey === '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') {
         throw new Error('❌ Vui lòng thay API key trong code bằng key thật của bạn từ https://console.groq.com/keys');
     }
 
