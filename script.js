@@ -1,6 +1,6 @@
 // ==================== DÙNG GROQ API (MIỄN PHÍ) ====================
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-let apiKey = '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';          // Sẽ lưu từ localStorage
+let apiKey = '';
 let currentQuestions = [];
 
 // ==================== QUẢN LÝ DỮ LIỆU NGƯỜI DÙNG ====================
@@ -22,13 +22,14 @@ function loadUserData() {
         updateStreakDisplay();
     }
     
-    // Lấy key từ localStorage, nếu chưa có thì dùng key mặc định
+    // Lấy key từ localStorage, nếu không có hoặc không hợp lệ thì gán key mặc định
     const savedKey = localStorage.getItem('groqApiKey');
-    if (savedKey) {
+    const DEFAULT_KEY = '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';
+    
+    if (savedKey && savedKey.startsWith('gsk_') && savedKey.length > 20) {
         apiKey = savedKey;
     } else {
-        // Gán key mặc định và lưu lại
-        apiKey = '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';
+        apiKey = DEFAULT_KEY;
         localStorage.setItem('groqApiKey', apiKey);
     }
     
@@ -84,11 +85,10 @@ function saveApiKey(key) {
 
 // ==================== GỌI GROQ API (CÓ THỬ NHIỀU MODEL) ====================
 async function callGroqAPI(prompt) {
-    if (!apiKey) {
-        throw new Error('❌ Vui lòng cấu hình Groq API Key');
+    if (!apiKey || !apiKey.startsWith('gsk_')) {
+        throw new Error('❌ API Key không hợp lệ. Vui lòng kiểm tra lại key trong code (dòng `let apiKey = ...`).\n👉 Lấy key miễn phí tại https://console.groq.com/keys');
     }
 
-    // Danh sách model thử theo thứ tự ưu tiên
     const modelsToTry = [
         'llama-3.1-8b-instant',
         'llama-3.3-70b-versatile',
@@ -123,7 +123,6 @@ async function callGroqAPI(prompt) {
         } catch (err) {
             console.warn(`Model ${model} thất bại:`, err.message);
             lastError = err;
-            // Tiếp tục thử model tiếp theo
         }
     }
 
@@ -223,17 +222,12 @@ function showErrorMessage(error) {
         suggestion = `
             <p>📊 Bạn đã dùng hết giới hạn tốc độ (rate limit) của Groq. Hãy thử lại sau vài giây hoặc nâng cấp lên gói Dev Tier để tăng giới hạn.</p>
             <p><a href="https://console.groq.com/settings/billing" target="_blank">🔗 Nâng cấp tại đây</a></p>
-            <p>💡 Hoặc bạn có thể <strong>tự thêm fallback câu hỏi mẫu</strong> vào code nếu muốn.</p>
         `;
     } else if (errorMessage.includes('API key') || errorMessage.includes('authorization') || errorMessage.includes('Invalid API Key')) {
         suggestion = `
-            <p>🔑 API Key không hợp lệ. Vui lòng kiểm tra lại key hoặc cấu hình key mới.</p>
+            <p>🔑 API Key không hợp lệ. Vui lòng kiểm tra lại key trong code (dòng \`let apiKey = '...'\`).</p>
+            <p>👉 Lấy key miễn phí tại <a href="https://console.groq.com/keys" target="_blank">https://console.groq.com/keys</a></p>
             <p>👉 <button id="configApiBtn" class="btn-primary">Cấu hình API Key</button></p>
-        `;
-    } else if (errorMessage.includes('model') && errorMessage.includes('not found')) {
-        suggestion = `
-            <p>🧠 Model AI không tồn tại hoặc đã bị thay thế. Hãy kiểm tra lại model trong code.</p>
-            <p>👉 Thử model mới nhất tại <a href="https://console.groq.com/docs/models" target="_blank">Groq Models</a></p>
         `;
     } else {
         suggestion = `
@@ -419,6 +413,5 @@ document.addEventListener('DOMContentLoaded', () => {
     if (refreshApiBtn) refreshApiBtn.onclick = showApiModal;
     if (startBtn) startBtn.onclick = () => loadNewQuestions();
 
-    // Luôn chạy loadNewQuestions (không confirm, vì đã có key)
     loadNewQuestions();
 });
