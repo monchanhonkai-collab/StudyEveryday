@@ -24,7 +24,7 @@ function loadUserData() {
     
     // Lấy key từ localStorage, nếu không có hoặc không hợp lệ thì gán key mặc định
     const savedKey = localStorage.getItem('groqApiKey');
-    const DEFAULT_KEY = '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';
+    const DEFAULT_KEY = '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';
     
     if (savedKey && savedKey.startsWith('gsk_') && savedKey.length > 20) {
         apiKey = savedKey;
