@@ -145,91 +145,44 @@ async function callGroqAPI(prompt) {
     throw lastError || new Error('Không có model nào hoạt động');
 }
 
-// ==================== NGÂN HÀNG CÂU HỎI THEO LỚP (CHUẨN SGK) ====================
-const QUESTION_BANKS = {
-    5: [
-        { text: "Tính: 12,5 × 4,8 = ?", answer: 60, explanation: "12,5 × 4,8 = 60" },
-        { text: "Một cửa hàng bán 2/3 số gạo, còn lại 150kg. Hỏi lúc đầu có bao nhiêu kg?", answer: 450, explanation: "150kg = 1/3 số gạo → Tổng = 450kg" },
-        { text: "Tính diện tích hình chữ nhật có chiều dài 24,5m, chiều rộng 8,4m", answer: 205.8, explanation: "24,5 × 8,4 = 205,8 m²" },
-        { text: "Tìm x: 3,5 × x = 24,5", answer: 7, explanation: "x = 24,5 : 3,5 = 7" },
-        { text: "Một hình tam giác có đáy 12cm, chiều cao 8cm. Tính diện tích", answer: 48, explanation: "12 × 8 : 2 = 48 cm²" },
-        { text: "Tính: 3/4 + 2/5 = ? (viết dưới dạng số thập phân)", answer: 1.15, explanation: "3/4 = 0,75; 2/5 = 0,4; 0,75 + 0,4 = 1,15" },
-        { text: "Một người đi xe máy trong 2,5 giờ được 87,5km. Tính vận tốc", answer: 35, explanation: "87,5 : 2,5 = 35 km/h" }
-    ],
-    6: [
-        { text: "Tìm x: 3x + 7 = 22", answer: 5, explanation: "3x = 15 → x = 5" },
-        { text: "Tính diện tích hình thang có đáy lớn 15cm, đáy nhỏ 9cm, chiều cao 8cm", answer: 96, explanation: "(15+9)×8:2 = 96 cm²" }
-    ],
-    7: [
-        { text: "Giải phương trình: 2(x-3) = 4x + 6", answer: -6, explanation: "2x-6=4x+6 → -12=2x → x=-6" },
-        { text: "Tính: (-3)² × 2 = ?", answer: 18, explanation: "9 × 2 = 18" }
-    ],
-    8: [
-        { text: "Tính (3√2)² = ?", answer: 18, explanation: "9 × 2 = 18" }
-    ],
-    9: [
-        { text: "Giải hệ: x + y = 7 và x - y = 3", answer: "x=5,y=2", explanation: "Cộng hai pt: 2x=10→x=5, y=2" }
-    ],
-    10: [
-        { text: "Tìm tập xác định của hàm số y = √(x² - 4)", answer: "x ≤ -2 hoặc x ≥ 2", explanation: "x²-4 ≥ 0 → x ≤ -2 hoặc x ≥ 2" }
-    ]
-};
-
-// ==================== TẠO CÂU HỎI (KẾT HỢP AI + NGÂN HÀNG) ====================
+// ==================== TẠO CÂU HỎI (CHỈ DÙNG AI) ====================
 async function generateQuestionsWithAI(grade, topic, count = 10) {
     const gradeNum = parseInt(grade);
+    const topicText = topic === 'all' ? 'toán học' : topic;
     
-    // Lấy câu hỏi từ ngân hàng trước
-    const bankQuestions = QUESTION_BANKS[gradeNum] || QUESTION_BANKS[5];
-    const selectedQuestions = [];
-    
-    // Lấy câu hỏi từ ngân hàng (đảm bảo đúng chương trình)
-    for (let i = 0; i < Math.min(count, bankQuestions.length); i++) {
-        selectedQuestions.push({ ...bankQuestions[i % bankQuestions.length] });
-    }
-    
-    // Nếu thiếu, bổ sung bằng AI (chỉ bổ sung dạng tính toán đơn giản)
-    if (selectedQuestions.length < count) {
-        const remaining = count - selectedQuestions.length;
-        const prompt = `Tạo ${remaining} câu hỏi toán cho học sinh lớp ${grade}. Mỗi câu hỏi chỉ là phép tính ĐƠN GIẢN, có đáp số là SỐ CỤ THỂ.
-        
+const prompt = `Bạn là giáo viên toán lớp ${grade} theo chương trình "Kết nối tri thức với cuộc sống". Hãy tạo ${count} câu hỏi trắc nghiệm toán phù hợp với học sinh lớp ${grade} ở mức độ khả năng lực học trung bình trở lên, chủ đề "${topicText}", nhưng đảm bảo câu hỏi không bị quá dễ, quá cơ bản.
+
+Yêu cầu:
+- Nội dung CHÍNH XÁC theo sách Kết nối tri thức với cuộc sống lớp ${grade}
+- Dạng bài tập: tính toán, giải phương trình, hình học, thực tế...
+- Mỗi câu có đáp số là số cụ thể
+- Giải thích ngắn gọn theo phương pháp của bộ sách này
+
 Định dạng JSON:
-{
-    "text": "câu hỏi (chỉ phép tính cơ bản)",
-    "answer": đáp_số,
-    "explanation": "giải thích ngắn"
-}
+[
+    {
+        "text": "câu hỏi",
+        "answer": đáp_số,
+        "explanation": "giải thích"
+    }
+]
 
-Ví dụ: {"text": "Tính: 25 × 4 = ?", "answer": 100, "explanation": "25 × 4 = 100"}
+Chỉ trả về JSON array, không thêm text nào khác.`;
 
-Trả về JSON array, không text khác.`;
-
-        try {
-            const responseText = await callGroqAPI(prompt);
-            const jsonMatch = responseText.match(/\[\s*\{[\s\S]*\}\s*\]/);
-            if (jsonMatch) {
-                const aiQuestions = JSON.parse(jsonMatch[0]);
-                for (let i = 0; i < aiQuestions.length && selectedQuestions.length < count; i++) {
-                    if (aiQuestions[i].text && typeof aiQuestions[i].answer === 'number') {
-                        selectedQuestions.push(aiQuestions[i]);
-                    }
-                }
+    try {
+        const responseText = await callGroqAPI(prompt);
+        const jsonMatch = responseText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        if (jsonMatch) {
+            const questions = JSON.parse(jsonMatch[0]);
+            if (questions.length === count && questions.every(q => q.text && typeof q.answer === 'number')) {
+                return questions;
             }
-        } catch (error) {
-            console.warn('AI bổ sung thất bại:', error);
         }
+        throw new Error('AI trả về định dạng không hợp lệ');
+    } catch (error) {
+        console.error('AI generation failed:', error);
+        throw new Error('Không thể tạo câu hỏi từ AI. Vui lòng thử lại sau.');
     }
-    
-    // Đảm bảo đủ số lượng
-    while (selectedQuestions.length < count) {
-        selectedQuestions.push({
-            text: `Tính: 25 × ${selectedQuestions.length + 4} = ?`,
-            answer: 25 * (selectedQuestions.length + 4),
-            explanation: `25 × ${selectedQuestions.length + 4} = ${25 * (selectedQuestions.length + 4)}`
-        });
-    }
-    
-    return selectedQuestions.slice(0, count);
 }
 
 // ==================== LẤY CÂU HỎI ====================
@@ -320,13 +273,32 @@ function showErrorMessage(error) {
     container.innerHTML = `
         <div style="background: #fef2f2; border-radius: 24px; padding: 60px 40px; text-align: center;">
             <i class="fas fa-circle-exclamation" style="font-size: 56px; color: #ef4444; margin-bottom: 20px;"></i>
-            <h3 style="margin-bottom: 16px;">⚠️ Không thể tải câu hỏi</h3>
-            <p style="color: #64748b; margin-bottom: 24px;">${error.message}</p>
-            <button id="retryBtn" style="background: linear-gradient(135deg, #06b6d4, #3b82f6); color: white; border: none; padding: 12px 28px; border-radius: 40px; font-weight: 600; cursor: pointer;">🔄 Thử lại</button>
+            <h3 style="margin-bottom: 16px; color: #991b1b;">⚠️ Không thể tải câu hỏi</h3>
+            <p style="color: #64748b; margin-bottom: 16px;">${error.message || 'Lỗi kết nối đến AI'}</p>
+            <div style="background: #fef9c3; padding: 16px; border-radius: 12px; margin: 20px 0; text-align: left;">
+                <p style="color: #854d0e; margin-bottom: 12px;"><strong>🔧 Hướng dẫn xử lý:</strong></p>
+                <ul style="color: #854d0e; margin-left: 20px;">
+                    <li>✅ Kiểm tra kết nối Internet</li>
+                    <li>✅ Thử tải lại trang (F5)</li>
+                    <li>✅ Thử đổi lớp hoặc chủ đề khác</li>
+                    <li>✅ Thử lại sau vài phút</li>
+                </ul>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+                <button id="retryBtn" style="background: linear-gradient(135deg, #06b6d4, #3b82f6); color: white; border: none; padding: 12px 28px; border-radius: 40px; font-weight: 600; cursor: pointer;">🔄 Thử lại</button>
+                <button id="changeTopicBtn" style="background: #f1f5f9; color: #475569; border: none; padding: 12px 28px; border-radius: 40px; font-weight: 600; cursor: pointer;">📚 Đổi chủ đề</button>
+            </div>
         </div>
     `;
     const retryBtn = document.getElementById('retryBtn');
     if (retryBtn) retryBtn.onclick = () => loadNewQuestions(true);
+    
+    const changeTopicBtn = document.getElementById('changeTopicBtn');
+    if (changeTopicBtn) {
+        changeTopicBtn.onclick = () => {
+            document.getElementById('topic').scrollIntoView({ behavior: 'smooth' });
+        };
+    }
 }
 
 // ==================== CHẤM ĐIỂM (DẠNG NHẬP ĐÁP ÁN) ====================
